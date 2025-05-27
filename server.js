@@ -8,9 +8,9 @@ const app = express();
 // CORS 설정 - 프로덕션 환경용
 app.use(cors({
     origin: [
-        'https://your-expo-app-url.com',  // Expo 앱 URL
-        'exp://your-expo-app-url.com',    // Expo 앱 URL
-        'https://auth.expo.io'            // Expo 인증 URL
+        'https://devops1.store',
+        'exp://localhost:8081',
+        'exp://192.168.0.1:8081'  // 개발 환경에서 사용하는 IP
     ],
     credentials: true
 }));
