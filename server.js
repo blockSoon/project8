@@ -16,6 +16,17 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// OAuth 리다이렉트 처리 엔드포인트
+app.get("/oauth", (req, res) => {
+    const { code, state } = req.query;
+    if (!code) {
+        return res.status(400).send("인가 코드가 없습니다.");
+    }
+    
+    // 앱으로 리다이렉트
+    res.redirect(`exp://localhost:8081/--/oauth?code=${code}&state=${state}`);
+});
+
 // 카카오 로그인 엔드포인트
 app.post("/api/auth/kakaoapp", async (req, res) => {
     try {
@@ -72,6 +83,7 @@ app.post("/api/auth/kakaoapp", async (req, res) => {
                 id,
                 email,
                 nickname: profile.nickname,
+                profile_image: profile.profile_image_url,
                 // token // JWT 토큰을 사용하는 경우
             }
         });
