@@ -24,7 +24,7 @@ app.get("/oauth", (req, res) => {
     }
     
     // 앱으로 리다이렉트
-    res.redirect(`exp://localhost:8081/--/oauth?code=${code}&state=${state}`);
+    res.redirect(`kakao-login-app://oauth?code=${code}&state=${state}`);
 });
 
 // 카카오 로그인 엔드포인트
