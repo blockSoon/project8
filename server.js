@@ -16,73 +16,77 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// OAuth 리다이렉트 처리 엔드포인트
-app.post("/oauth", async (req, res) => {
-  console.log(req.body);
-  const { ACCESS_TOKEN } = req.body;
-  let tmp;
-  try {
-    const url = 'https://kapi.kakao.com/v2/user/me';
-    const Header = {
-      headers: {
-        Authorization: `Bearer ${ACCESS_TOKEN}`,
-      },
-    };
-    tmp = await axios.get(url, Header);
-  } catch (e) {
-    console.log('액시오스 에러');
-    console.log(e);
-
-    const response = {
-      result: 'fail',
-      error: '토큰 에러',
-    };
-
-    res.send(response);
-    return;
+// GET 요청 처리 엔드포인트 추가
+app.get("/oauth", async (req, res) => {
+  const { code } = req.query;
+  
+  if (!code) {
+    return res.status(400).json({
+      success: false,
+      message: "인가 코드가 필요합니다."
+    });
   }
 
   try {
-    const { data } = tmp;
-    const { id, properties } = data;
+    // 카카오 토큰 요청
+    const tokenResponse = await axios.post(
+      "https://kauth.kakao.com/oauth/token",
+      {
+        grant_type: "authorization_code",
+        client_id: process.env.KAKAO_CLIENT_ID,
+        redirect_uri: process.env.KAKAO_REDIRECT_URI,
+        code: code
+      },
+      {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded;charset=utf-8"
+        }
+      }
+    );
+
+    const { access_token } = tokenResponse.data;
+
+    // 카카오 사용자 정보 요청
+    const userResponse = await axios.get(
+      "https://kapi.kakao.com/v2/user/me",
+      {
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+          "Content-Type": "application/x-www-form-urlencoded;charset=utf-8"
+        }
+      }
+    );
+
+    const { id, properties } = userResponse.data;
     const { nickname } = properties;
 
+    // 사용자 정보 처리
     const result = await Users.findOne({ where: { u_id: id } });
+    let userData;
 
     if (result) {
-      const response = {
-        result: 'success',
-        data: result,
-      };
-      res.send(response);
+      userData = result;
     } else {
       const payload = {
         u_id: id,
         u_alias: nickname,
       };
       await Users.create(payload);
-      const data = (await Users.findOne({ where: { u_id: id } }));
-      const response = {
-        result: 'success',
-        data,
-      };
+      userData = await Users.findOne({ where: { u_id: id } });
+    }
 
-      res.send(response);
-    }
-  } catch (e) {
-    console.log(e);
-    let msg = '';
-    if (typeof e === 'string') {
-      msg = e;
-    } else if (e instanceof Error) {
-      msg = e.message;
-    }
-    const response = {
+    // 성공 응답
+    res.json({
+      result: 'success',
+      data: userData
+    });
+
+  } catch (error) {
+    console.error("카카오 로그인 처리 중 오류:", error);
+    res.status(500).json({
       result: 'fail',
-      error: msg,
-    };
-
-    res.send(response);
+      error: "카카오 로그인 처리 중 오류가 발생했습니다."
+    });
   }
 });
 
