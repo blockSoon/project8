@@ -17,14 +17,73 @@ app.use(cors({
 app.use(express.json());
 
 // OAuth 리다이렉트 처리 엔드포인트
-app.get("/oauth", (req, res) => {
-    const { code, state } = req.query;
-    if (!code) {
-        return res.status(400).send("인가 코드가 없습니다.");
+app.post("/oauth", async (req, res) => {
+  console.log(req.body);
+  const { ACCESS_TOKEN } = req.body;
+  let tmp;
+  try {
+    const url = 'https://kapi.kakao.com/v2/user/me';
+    const Header = {
+      headers: {
+        Authorization: `Bearer ${ACCESS_TOKEN}`,
+      },
+    };
+    tmp = await axios.get(url, Header);
+  } catch (e) {
+    console.log('액시오스 에러');
+    console.log(e);
+
+    const response = {
+      result: 'fail',
+      error: '토큰 에러',
+    };
+
+    res.send(response);
+    return;
+  }
+
+  try {
+    const { data } = tmp;
+    const { id, properties } = data;
+    const { nickname } = properties;
+
+    const result = await Users.findOne({ where: { u_id: id } });
+
+    if (result) {
+      const response = {
+        result: 'success',
+        data: result,
+      };
+      res.send(response);
+    } else {
+      const payload = {
+        u_id: id,
+        u_alias: nickname,
+      };
+      await Users.create(payload);
+      const data = (await Users.findOne({ where: { u_id: id } }));
+      const response = {
+        result: 'success',
+        data,
+      };
+
+      res.send(response);
     }
-    
-    // 앱으로 리다이렉트
-    res.redirect(`exp://localhost:8081/--/oauth?code=${code}&state=${state}`);
+  } catch (e) {
+    console.log(e);
+    let msg = '';
+    if (typeof e === 'string') {
+      msg = e;
+    } else if (e instanceof Error) {
+      msg = e.message;
+    }
+    const response = {
+      result: 'fail',
+      error: msg,
+    };
+
+    res.send(response);
+  }
 });
 
 // 카카오 로그인 엔드포인트
