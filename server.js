@@ -75,7 +75,7 @@ app.get("/", async (req, res) => {
     
     const { id, properties } = userResponse.data;
     const { nickname } = properties;
-    res.json(id, properties, nickname);
+    res.json({id, properties, nickname});
 
 });
 
