@@ -28,6 +28,22 @@ app.get("/oauth", async (req, res) => {
   }
 
   try {
+    // 카카오 토큰 요청
+    const tokenResponse = await axios.post(
+      "https://kauth.kakao.com/oauth/token",
+      {
+        grant_type: "authorization_code",
+        client_id: process.env.KAKAO_CLIENT_ID,
+        redirect_uri: process.env.KAKAO_REDIRECT_URI,
+        code: code
+      },
+      {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded;charset=utf-8"
+        }
+      }
+    );
+
     const { access_token } = tokenResponse.data;
 
     // 카카오 사용자 정보 요청
