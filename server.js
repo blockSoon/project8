@@ -16,54 +16,67 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// 카카오 로그인 엔드포인트
-app.post("/oauth", async (req, res) => {
-    try {
-        const { ACCESS_TOKEN } = req.body;
+// GET 요청 처리 엔드포인트 추가
+app.get("/oauth", async (req, res) => {
+  const { code } = req.query;
+  
+  if (!code) {
+    return res.status(400).json({
+      result: 'fail',
+      error: "인가 코드가 필요합니다."
+    });
+  }
 
-        if (!ACCESS_TOKEN) {
-            return res.status(400).json({
-                result: 'fail',
-                error: "액세스 토큰이 필요합니다."
-            });
+  try {
+    // 카카오 토큰 요청
+    const tokenResponse = await axios.post(
+      "https://kauth.kakao.com/oauth/token",
+      {
+        grant_type: "authorization_code",
+        client_id: process.env.KAKAO_CLIENT_ID,
+        redirect_uri: process.env.KAKAO_REDIRECT_URI,
+        code: code,
+        client_secret: process.env.CLIENT_SECRET,
+      },
+      {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded;charset=utf-8"
         }
+      }
+    );
 
-        // 카카오 사용자 정보 요청
-        const userResponse = await axios.get(
-            "https://kapi.kakao.com/v2/user/me",
-            {
-                headers: {
-                    Authorization: `Bearer ${ACCESS_TOKEN}`,
-                    "Content-Type": "application/x-www-form-urlencoded;charset=utf-8"
-                }
-            }
-        );
+    const { access_token } = tokenResponse.data;
 
-        const { id, properties } = userResponse.data;
-        const { nickname } = properties;
+    // 성공 응답
+    res.redirect(`/?access_token=${access_token}`);
 
-        // 성공 응답
-        res.json({
-            result: 'success',
-            data: {
-                id,
-                nickname,
-                properties
-            }
-        });
-
-    } catch (error) {
-        console.error("카카오 로그인 처리 중 오류:", error.response?.data || error.message);
-        res.status(500).json({
-            result: 'fail',
-            error: "카카오 로그인 처리 중 오류가 발생했습니다."
-        });
-    }
+  } catch (error) {
+    console.error("카카오 로그인 처리 중 오류:", error.response?.data || error.message);
+    res.status(500).json({
+      result: 'fail',
+      error: "카카오 로그인 처리 중 오류가 발생했습니다."
+    });
+  }
 });
 
-// 서버 상태 확인 엔드포인트
-app.get("/", (req, res) => {
-    res.send("<div>서버가 정상적으로 실행 중입니다.</div>");
+// 카카오 사용자 정보 요청
+app.get("/", async (req, res) => {
+    const { access_token } = req.query;
+    // 카카오 사용자 정보 요청
+    const userResponse = await axios.get(
+        "https://kapi.kakao.com/v2/user/me",
+        {
+            headers: {
+                Authorization: `Bearer ${access_token}`,
+                "Content-Type": "application/x-www-form-urlencoded;charset=utf-8"
+            }
+        }
+    );
+    
+    const { id, properties } = userResponse.data;
+    const { nickname } = properties;
+    res.json(id, properties, nickname);
+
 });
 
 const PORT = process.env.PORT || 3000;
