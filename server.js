@@ -48,7 +48,7 @@ app.get("/oauth", async (req, res) => {
     const { access_token } = tokenResponse.data;
 
     // 성공 응답
-    res.redirect(`/?access_token=${access_token}`);
+    res.redirect(`https://devops1.store/?access_token=${access_token}`);
 
   } catch (error) {
     console.error("카카오 로그인 처리 중 오류:", error.response?.data || error.message);
