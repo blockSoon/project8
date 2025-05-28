@@ -35,6 +35,7 @@ app.get("/oauth", async (req, res) => {
         grant_type: "authorization_code",
         client_id: process.env.KAKAO_CLIENT_ID,
         redirect_uri: process.env.KAKAO_REDIRECT_URI,
+        client_secret : process.env.CLIENT_SECRET,
         code: code
       },
       {
