@@ -60,25 +60,10 @@ app.get("/oauth", async (req, res) => {
     const { id, properties } = userResponse.data;
     const { nickname } = properties;
 
-    // 사용자 정보 처리
-    const result = await Users.findOne({ where: { u_id: id } });
-    let userData;
-
-    if (result) {
-      userData = result;
-    } else {
-      const payload = {
-        u_id: id,
-        u_alias: nickname,
-      };
-      await Users.create(payload);
-      userData = await Users.findOne({ where: { u_id: id } });
-    }
-
     // 성공 응답
     res.json({
       result: 'success',
-      data: userData
+      data: {id, properties, nickname}
     });
 
   } catch (error) {
